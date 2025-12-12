@@ -11,7 +11,7 @@ pipeline {
             steps {
                 // Cloner le repo avec le token Git
                 git branch: 'sahem',
-                    url: 'https://github.com/BrahimGarram/devops.git',
+                    url: 'https://github.com/Sahemomrane/tasnim_sahem.git',
                     credentialsId: 'github-token'
             }
         }
