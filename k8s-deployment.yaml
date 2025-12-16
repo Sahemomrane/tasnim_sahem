@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tasnim-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tasnim
+  template:
+    metadata:
+      labels:
+        app: tasnim
+    spec:
+      containers:
+      - name: tasnim
+        image: tasnim-app:latest
+        ports:
+        - containerPort: 8080
