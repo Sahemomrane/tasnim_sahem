@@ -1,62 +1,74 @@
 pipeline {
-    agent any
+  agent {
+    kubernetes {
+      yaml """
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: maven
+    image: maven:3.9.6-eclipse-temurin-17
+    command:
+    - cat
+    tty: true
 
-    tools {
-        maven 'M2_HOME'
+  - name: sonar
+    image: sonarsource/sonar-scanner-cli:latest
+    command:
+    - cat
+    tty: true
+
+  - name: docker
+    image: docker:26-cli
+    command:
+    - cat
+    tty: true
+    volumeMounts:
+    - name: dockersock
+      mountPath: /var/run/docker.sock
+
+  volumes:
+  - name: dockersock
+    hostPath:
+      path: /var/run/docker.sock
+"""
+    }
+  }
+
+  stages {
+
+    stage('GIT') {
+      steps {
+        container('maven') {
+          git branch: 'sahem',
+              url: 'https://github.com/Sahemomrane/tasnim_sahem.git',
+              credentialsId: 'github-token'
+        }
+      }
     }
 
-    stages {
-
-        stage('GIT') {
-            steps {
-                git branch: 'sahem',
-                    url: 'https://github.com/Sahemomrane/tasnim_sahem.git',
-                    credentialsId: 'github-token'
-            }
+    stage('MVN CLEAN & PACKAGE') {
+      steps {
+        container('maven') {
+          sh 'mvn clean package -DskipTests'
         }
-
-        stage('MVN CLEAN') {
-            steps {
-                sh 'mvn clean'
-            }
-        }
-
-        stage('MVN COMPILE') {
-            steps {
-                sh 'mvn package -DskipTests'
-            }
-        }
-
-        stage('SONARQUBE') {
-            steps {
-                withSonarQubeEnv('sonarqube') {
-                    sh 'mvn sonar:sonar'
-                }
-            }
-        }
-
-        stage('DOCKER BUILD') {
-            steps {
-                sh 'docker build -t tasnim-app:latest .'
-            }
-        }
-
-        stage('DEPLOY TO KUBERNETES') {
-            steps {
-                sh '''
-                  kubectl apply -f k8s-deployment.yaml
-                  kubectl apply -f k8s-service.yaml
-                '''
-            }
-        }
+      }
     }
 
-    post {
-        success {
-            echo 'CI/CD terminé avec succès 🚀'
+    stage('SONARQUBE') {
+      steps {
+        container('sonar') {
+          withSonarQubeEnv('sonarqube') {
+            sh '''
+              sonar-scanner \
+              -Dsonar.projectKey=tasnim-app \
+              -Dsonar.sources=src \
+              -Dsonar.java.binaries=target
+            '''
+          }
         }
-        failure {
-            echo 'Pipeline échoué ❌'
-        }
+      }
     }
-}
+
+    stage('DOCKER BUILD') {
+      step
