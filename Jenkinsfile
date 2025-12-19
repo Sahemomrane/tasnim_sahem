@@ -38,37 +38,4 @@ spec:
   stages {
 
     stage('GIT') {
-      steps {
-        container('maven') {
-          git branch: 'sahem',
-              url: 'https://github.com/Sahemomrane/tasnim_sahem.git',
-              credentialsId: 'github-token'
-        }
-      }
-    }
-
-    stage('MVN CLEAN & PACKAGE') {
-      steps {
-        container('maven') {
-          sh 'mvn clean package -DskipTests'
-        }
-      }
-    }
-
-    stage('SONARQUBE') {
-      steps {
-        container('sonar') {
-          withSonarQubeEnv('sonarqube') {
-            sh '''
-              sonar-scanner \
-              -Dsonar.projectKey=tasnim-app \
-              -Dsonar.sources=src \
-              -Dsonar.java.binaries=target
-            '''
-          }
-        }
-      }
-    }
-
-    stage('DOCKER BUILD') {
-      step
+      ste
