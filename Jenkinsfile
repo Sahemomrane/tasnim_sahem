@@ -1,7 +1,7 @@
 pipeline {
   agent {
     kubernetes {
-      yaml """
+      yaml '''
 apiVersion: v1
 kind: Pod
 spec:
@@ -31,11 +31,61 @@ spec:
   - name: dockersock
     hostPath:
       path: /var/run/docker.sock
-"""
+'''
     }
   }
 
   stages {
 
-    stage('GIT') {
-      ste
+    stage('Checkout') {
+      steps {
+        container('maven') {
+          git branch: 'sahem',
+              url: 'https://github.com/Sahemomrane/tasnim_sahem.git',
+              credentialsId: 'github-token'
+        }
+      }
+    }
+
+    stage('Maven Build') {
+      steps {
+        container('maven') {
+          sh 'mvn clean package -DskipTests'
+        }
+      }
+    }
+
+    stage('SonarQube Analysis') {
+      steps {
+        container('sonar') {
+          withSonarQubeEnv('sonarqube') {
+            sh '''
+              sonar-scanner \
+              -Dsonar.projectKey=tasnim-app \
+              -Dsonar.sources=src \
+              -Dsonar.java.binaries=target
+            '''
+          }
+        }
+      }
+    }
+
+    stage('Docker Build') {
+      steps {
+        container('docker') {
+          sh 'docker build -t tasnim-app:latest .'
+        }
+      }
+    }
+
+  }
+
+  post {
+    success {
+      echo 'Pipeline terminé avec succès ✅'
+    }
+    failure {
+      echo 'Pipeline échoué ❌'
+    }
+  }
+}
